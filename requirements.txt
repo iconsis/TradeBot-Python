@@ -23,7 +23,7 @@ selenium==3.141.0
 six==1.16.0
 sqlparse==0.4.2
 static3==0.7.0
-TA-Lib @ https://download.lfd.uci.edu/pythonlibs/a4hvik9m/cp36/TA_Lib-0.4.19-cp36-cp36m-win_amd64.whl
+TA-Lib @ https://download.lfd.uci.edu/pythonlibs/a4hvik9m/TA_Lib-0.4.24-cp39-cp39-win_amd64.whl
 tornado==6.1
 typing_extensions==4.1.1
 tzdata==2022.1
