@@ -28,7 +28,7 @@ def get_access_token():
 
     options = webdriver.ChromeOptions()
     options.add_argument('--headless')
-    driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+    driver = webdriver.Chrome("tools/chromedriver.exe", options=options)
 
     driver.get(generate_auth_code_url)
 

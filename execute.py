@@ -8,8 +8,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from strategies.ema_5 import ema_5_strategy, ema_5_strategy_v1
 
 config = {
-    "day_of_job": "mon-fri",
-    "hour": "17",
+    "day_of_job": "mon-sat",
+    "hour": "09",
     "minute": "15"
 }
 
