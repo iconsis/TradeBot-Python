@@ -5,6 +5,7 @@ import datetime
 import time
 import talib
 import threading
+import logging
 from strategies.ema_5 import algo_util as utility
 
 def process(name):
@@ -28,7 +29,7 @@ def process(name):
             signal_candle_formed = signal_candle['low'] > signal_candle['5ema']
             sell_signal_formed = current_candle['low'] < signal_candle['low']
 
-            print(f"Signal for trade : {signal_candle_formed and sell_signal_formed and traded is False} for {name}")
+            logging.warning(f"Signal for trade : {signal_candle_formed and sell_signal_formed and traded is False} for {name}")
             if signal_candle_formed and sell_signal_formed and traded is False:
                 print(f"{Fore.YELLOW} Signal for {name} on {datetime.datetime.now().time()} {Fore.WHITE} \n")
                 sl = signal_candle['high'] + 0.10

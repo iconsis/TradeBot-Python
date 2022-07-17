@@ -1,5 +1,5 @@
 import time
-
+import logging
 from fyers_api import accessToken
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium import webdriver
@@ -81,7 +81,7 @@ def get_access_token():
     time.sleep(1)
 
     result_url = driver.current_url
-    print(result_url)
+    logging.warning(result_url)
     auth_code = result_url.split("auth_code=")[1].split("&")[0]
     driver.close()
 
@@ -93,4 +93,4 @@ def get_access_token():
 
 if __name__ == '__main__':
     access_token = get_access_token()
-    print(access_token)
+    logging.warning(access_token)

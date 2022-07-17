@@ -5,16 +5,17 @@ import datetime
 import time
 import talib
 import threading
+import logging
 from strategies.ema_5 import algo_util as utility
 
-def process(name):
+def process(name, status):
     risk_capacity = 100
     ema_period = 5
     timeframe = '5min'
     tgt_multiplier = 2
     traded = False
 
-    while getTradeTime() and traded is False:
+    while getTradeTime() and status['traded'] != 'yes':
         try:
             dx = utility.get_historical_data(name="NSE:" + name + "-EQ", interval=timeframe, timeperiod=3)
             df = pd.DataFrame()
@@ -22,35 +23,50 @@ def process(name):
 
             df['5ema'] = talib.EMA(df['close'], timeperiod=ema_period)
 
+            trigger_candle = df.iloc[-3]
             signal_candle = df.iloc[-2]
+            current_candle = df.iloc[-1]
 
-            signal_candle_formed = signal_candle['low'] > signal_candle['5ema']
+            if status['state'] is None :
+                status['name'] = name
+                trigger_candle_formed = trigger_candle['close'] > (trigger_candle['low'] * 1.007)
+                signal_candle_formed = signal_candle['low'] > signal_candle['5ema']
 
-            print(f"Signal for trade : {signal_candle_formed and traded is False} for {name}")
-            if signal_candle_formed and traded is False:
-                print(f"{Fore.YELLOW} Signal for {name} on {datetime.datetime.now().time()} {Fore.WHITE} \n")
-                sl = signal_candle['high'] + 0.10
+                if trigger_candle_formed and signal_candle_formed:
+                    status['state'] = 'Ready for sell'
+                    status['sl_price'] = trigger_candle['high'] if trigger_candle['high'] > signal_candle['high'] else signal_candle['high']
+                else:
+                    return
+
+            sell_signal_formed = current_candle['low'] < status['entry_price']
+
+            if sell_signal_formed:
+                logging.info(f"Signal for trade : {signal_candle_formed and sell_signal_formed and traded is False} for {name}")
+                logging.info(f"{Fore.YELLOW} Signal for {name} on {datetime.datetime.now().time()} {Fore.WHITE} \n")
+
+                status['sell_date'] = current_candle['date']
+                status['entry_time'] = current_candle['date'].time()
+                status['entry_price'] = signal_candle['low']
 
                 try:
-                    qty = int(risk_capacity / (sl - signal_candle['low']))
+                    qty = int(risk_capacity / (status['sl_price'] - status['entry_price']))
                 except Exception as e:
-                    print(f"trade not taken for {name} as SL, entry values are not valid")
+                    logging.info(f"trade not taken for {name} as SL, entry values are not valid")
                     return
 
                 if qty <= 0:
-                    print(f"trade not taken for {name} as SL value exceeds risk capacity")
+                    logging.info(f"trade not taken for {name} as SL value exceeds risk capacity")
                 else:
-                    entry_price = signal_candle['low'];
-                    sl_points = round((sl - signal_candle['low']) * 20.0) / 20.0
+                    sl_points = round((status['sl_price'] - status['entry_price']) * 20.0) / 20.0
                     tg_points = round((tgt_multiplier * sl_points) * 20.0) / 20.0
 
                     data = {
                         "symbol": "NSE:" + name + "-EQ",
                         "qty": qty,
-                        "type": 1,
+                        "type": 2,
                         "side": -1,
                         "productType": "BO",
-                        "limitPrice": entry_price,
+                        "limitPrice": 0,
                         "stopPrice": 0,
                         "validity": "DAY",
                         "disclosedQty": 0,
@@ -59,13 +75,14 @@ def process(name):
                         "takeProfit": tg_points
                     }
                     response = utility.place_order(data)
-                    print(f"Response : {response}")
+                    logging.info(f"Response : {response}")
                     if response is not None:
-                        traded = True
+                        status['traded'] = 'yes'
 
         except Exception as e:
-            print(f"Error occurred : {e}")
+            logging.info(f"Error occurred : {e}")
         time.sleep(3)
+    logging.info(f"Trade : {status}")
 
 def getTradeTime():
     return datetime.time(9, 15) < datetime.datetime.now().time() < datetime.time(10, 00)
@@ -73,12 +90,34 @@ def getTradeTime():
 def ema5Strategy(watchlist):
 
     for name in watchlist:
-        x = threading.Thread(target=process, args=(name,))
-        print(f"Thread started for {name}")
+        status = getEmptyStatusObject()
+        x = threading.Thread(target=process, args=(name,status,))
+        logging.info(f"Thread started for {name}")
         x.start()
         time.sleep(3)
 
+def getEmptyStatusObject():
+    return {
+        'state': None,
+        'buysell': None,
+        'name': None,
+        'sell_date': None,
+        'entry_time': None,
+        'entry_price': None,
+        'signal_candle_date': None,
+        'traded': None,
+        'qty': None,
+        'sl_price': None,
+        'tg': None,
+        'exit_time': None,
+        'exit_price': None,
+        'pnl': None,
+        'target_hit': None,
+        'sl_hit': None,
+    }
+
 def main():
+    logging.info("Scheduler started... ")
     utility.fyers_login()
 
     watchlist = [
@@ -106,7 +145,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
-
