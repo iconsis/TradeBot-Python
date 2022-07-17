@@ -8,6 +8,8 @@ import threading
 import logging
 from strategies.ema_5 import algo_util as utility
 
+logger = logging.getLogger(__name__)
+
 def process(name, status):
     risk_capacity = 100
     ema_period = 5
@@ -34,28 +36,29 @@ def process(name, status):
 
                 if trigger_candle_formed and signal_candle_formed:
                     status['state'] = 'Ready for sell'
+                    status['entry_price'] = signal_candle['low']
                     status['sl_price'] = trigger_candle['high'] if trigger_candle['high'] > signal_candle['high'] else signal_candle['high']
                 else:
-                    return
+                    continue
 
             sell_signal_formed = current_candle['low'] < status['entry_price']
 
             if sell_signal_formed:
-                logging.info(f"Signal for trade : {signal_candle_formed and sell_signal_formed and traded is False} for {name}")
-                logging.info(f"{Fore.YELLOW} Signal for {name} on {datetime.datetime.now().time()} {Fore.WHITE} \n")
+                logger.info(f"Signal for trade : {signal_candle_formed and sell_signal_formed and traded is False} for {name}")
+                logger.info(f"{Fore.YELLOW} Signal for {name} on {datetime.datetime.now().time()} {Fore.WHITE} \n")
 
                 status['sell_date'] = current_candle['date']
                 status['entry_time'] = current_candle['date'].time()
-                status['entry_price'] = signal_candle['low']
 
                 try:
                     qty = int(risk_capacity / (status['sl_price'] - status['entry_price']))
                 except Exception as e:
-                    logging.info(f"trade not taken for {name} as SL, entry values are not valid")
+                    logger.info(f"trade not taken for {name} as SL, entry values are not valid")
                     return
 
+                status['qty'] = qty
                 if qty <= 0:
-                    logging.info(f"trade not taken for {name} as SL value exceeds risk capacity")
+                    logger.info(f"trade not taken for {name} as SL value exceeds risk capacity")
                 else:
                     sl_points = round((status['sl_price'] - status['entry_price']) * 20.0) / 20.0
                     tg_points = round((tgt_multiplier * sl_points) * 20.0) / 20.0
@@ -75,14 +78,14 @@ def process(name, status):
                         "takeProfit": tg_points
                     }
                     response = utility.place_order(data)
-                    logging.info(f"Response : {response}")
+                    logger.info(f"Response : {response}")
                     if response is not None:
                         status['traded'] = 'yes'
 
         except Exception as e:
-            logging.info(f"Error occurred : {e}")
+            logger.info(f"Error occurred : {e}")
         time.sleep(3)
-    logging.info(f"Trade : {status}")
+    logger.info(f"Trade : {status}")
 
 def getTradeTime():
     return datetime.time(9, 15) < datetime.datetime.now().time() < datetime.time(10, 00)
@@ -92,7 +95,7 @@ def ema5Strategy(watchlist):
     for name in watchlist:
         status = getEmptyStatusObject()
         x = threading.Thread(target=process, args=(name,status,))
-        logging.info(f"Thread started for {name}")
+        logger.info(f"Thread started for {name}")
         x.start()
         time.sleep(3)
 
@@ -117,7 +120,7 @@ def getEmptyStatusObject():
     }
 
 def main():
-    logging.info("Scheduler started... ")
+    logger.info("Scheduler started... ")
     utility.fyers_login()
 
     watchlist = [

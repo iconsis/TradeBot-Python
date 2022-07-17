@@ -128,28 +128,36 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # DataFlair #Logging Information
 LOGGING = {
     'version': 1,
-    # Version of logging
     'disable_existing_loggers': False,
-    #disable logging
-    # Handlers #############################################################
-    'handlers': {
-        'file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': 'dataflair-debug.log',
+    'formatters': {
+        'verbose': {
+            'format' : "[%(asctime)s] %(levelname)s [%(name)s:%(lineno)s] %(message)s",
+            'datefmt' : "%d/%b/%Y %H:%M:%S"
         },
-        ########################################################################
-        'console': {
-            'class': 'logging.StreamHandler',
+        'simple': {
+            'format': '%(levelname)s %(message)s'
         },
     },
-    # Loggers ####################################################################
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': 'tradebot.log',
+            'when': 'D', # this specifies the interval
+            'interval': 1, # defaults to 1, only necessary for other values
+            'backupCount': 10, # how many backup file to keep, 10 days
+            'formatter': 'verbose',
+        },
+
+    },
     'loggers': {
         'django': {
-            'handlers': ['file', 'console'],
-            'level': 'DEBUG',
-            'propagate': True,
-            'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG')
+            'handlers': ['file'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
         },
+        '': {
+            'handlers': ['file'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+        }
     },
 }
