@@ -4,8 +4,7 @@
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
-# jobs
-from strategies.ema_5 import ema_5_strategy, ema_5_strategy_v1, ema_5_strategy_v2
+import main
 
 config = {
     "day_of_job": "mon-fri",
@@ -15,7 +14,7 @@ config = {
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(
-    ema_5_strategy_v2.main,
+    main.main,
     "cron",
     day_of_week=config["day_of_job"],
     hour=config["hour"],

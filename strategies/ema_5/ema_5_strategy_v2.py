@@ -5,8 +5,8 @@ import datetime
 import time
 import talib
 import threading
+from utilities import algo_util as utility
 import logging
-from strategies.ema_5 import algo_util as utility
 
 logger = logging.getLogger(__name__)
 
@@ -81,11 +81,11 @@ def process(name, status):
                     logger.info(f"Response : {response}")
                     if response is not None:
                         status['traded'] = 'yes'
+                        logger.info(f"Trade : {status}")
 
         except Exception as e:
             logger.info(f"Error occurred : {e}")
         time.sleep(3)
-    logger.info(f"Trade : {status}")
 
 def getTradeTime():
     return datetime.time(9, 15) < datetime.datetime.now().time() < datetime.time(10, 00)
@@ -118,33 +118,3 @@ def getEmptyStatusObject():
         'target_hit': None,
         'sl_hit': None,
     }
-
-def main():
-    logger.info("Scheduler started... ")
-    utility.fyers_login()
-
-    watchlist = [
-        'POWERGRID'
-        ,'MARUTI'
-        ,'BRITANNIA'
-        ,'IOC'
-        ,'SBILIFE'
-        ,'M&M'
-        ,'SHREECEM'
-        ,'EICHERMOT'
-        ,'DRREDDY'
-        ,'NTPC'
-        ,'CIPLA'
-        ,'SBIN'
-        ,'LT'
-        ,'ONGC'
-        ,'UPL'
-        ,'HEROMOTOCO'
-        ,'DIVISLAB'
-        ,'WIPRO'
-        ,'RELIANCE'
-        ,'ITC']
-    ema5Strategy(watchlist)
-
-if __name__ == '__main__':
-    main()

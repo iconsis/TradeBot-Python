@@ -5,7 +5,8 @@ import datetime
 import time
 import talib
 import threading
-from strategies.ema_5 import algo_util as utility
+from utilities import algo_util as utility
+
 
 def process(name, traded):
     risk_capacity = 70

@@ -148,7 +148,14 @@ LOGGING = {
             'backupCount': 10, # how many backup file to keep, 10 days
             'formatter': 'verbose',
         },
-
+        'infofile': {
+            'level': 'INFO',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': 'yourlogbasename.log',
+            'when': 'D', # daily, you can use 'midnight' as well
+            'backupCount': 100, # 100 days backup
+            'formatter': 'verbose',
+        },
     },
     'loggers': {
         'django': {
