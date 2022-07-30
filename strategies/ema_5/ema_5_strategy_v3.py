@@ -5,15 +5,14 @@ import datetime
 import time
 import talib
 import threading
-import logging
 from utilities import algo_util as utility
+import logging
 
 logger = logging.getLogger(__name__)
 
 def process(name, status):
     risk_capacity = 100
-    ema_period = 200
-    rsi_period = 10
+    ema_period = 5
     timeframe = '5min'
     tgt_multiplier = 2
     traded = False
@@ -24,33 +23,37 @@ def process(name, status):
             df = pd.DataFrame()
             df = df.append(dx)
 
-            df['200_ma'] = talib.EMA(df['close'], timeperiod=ema_period)
-            df['rsi_10'] = talib.RSI(df['close'], timeperiod=rsi_period)
+            df['5ema'] = talib.EMA(df['close'], timeperiod=ema_period)
 
             trigger_candle = df.iloc[-3]
             signal_candle = df.iloc[-2]
+            current_candle = df.iloc[-1]
 
-            buy_signal_formed = signal_candle['rsi_10'] < 30 and trigger_candle['rsi_10'] > 30
-            buy_signal_formed = buy_signal_formed and trigger_candle['close'] > trigger_candle['200_ma']
-            buy_signal_formed = buy_signal_formed and signal_candle['close'] < signal_candle['open']
+            trigger_candle_formed = trigger_candle['close'] > (trigger_candle['low'] * 1.007)
+            signal_candle_formed = trigger_candle_formed and signal_candle['low'] > signal_candle['5ema']
 
-            if buy_signal_formed:
-                logger.info(f"Signal for trade : {buy_signal_formed and traded is False} for {name}")
+            if signal_candle_formed:
+                status['name'] = name
+                status['state'] = 'Ready for sell'
+                status['entry_price'] = signal_candle['low']
+                status['sl_price'] = trigger_candle['high'] if trigger_candle['high'] > signal_candle['high'] else signal_candle['high']
+            else:
+                continue
+
+            sell_signal_formed = current_candle['low'] < status['entry_price']
+
+            if sell_signal_formed:
+                logger.info(f"Signal for trade : {signal_candle_formed and sell_signal_formed and traded is False} for {name}")
                 logger.info(f"{Fore.YELLOW} Signal for {name} on {datetime.datetime.now().time()} {Fore.WHITE} \n")
 
-                status['name'] = name
-                status['state'] = 'Ready for buy'
-                status['buy_sell'] = "buy"
-                status['trade_date'] = signal_candle['date']
-                status['entry_time'] = signal_candle['date'].time()
-                status['entry_price'] = signal_candle['close']
-                status['sl_price'] = status['entry_price'] - ((status['entry_price'] * 0.25) / 100)
+                status['sell_date'] = current_candle['date']
+                status['entry_time'] = current_candle['date'].time()
 
                 try:
                     qty = int(risk_capacity / (status['sl_price'] - status['entry_price']))
                 except Exception as e:
                     logger.info(f"trade not taken for {name} as SL, entry values are not valid")
-                    continue
+                    return
 
                 status['qty'] = qty
                 if qty <= 0:
@@ -63,7 +66,7 @@ def process(name, status):
                         "symbol": "NSE:" + name + "-EQ",
                         "qty": qty,
                         "type": 2,
-                        "side": 1,
+                        "side": -1,
                         "productType": "BO",
                         "limitPrice": 0,
                         "stopPrice": 0,
@@ -84,9 +87,9 @@ def process(name, status):
         time.sleep(3)
 
 def getTradeTime():
-    return datetime.time(9, 15) < datetime.datetime.now().time() < datetime.time(12, 00)
+    return datetime.time(9, 15) < datetime.datetime.now().time() < datetime.time(10, 00)
 
-def rsi10ema200Strategy(watchlist):
+def ema5Strategy(watchlist):
 
     for name in watchlist:
         status = getEmptyStatusObject()
@@ -114,4 +117,3 @@ def getEmptyStatusObject():
         'target_hit': None,
         'sl_hit': None,
     }
-
